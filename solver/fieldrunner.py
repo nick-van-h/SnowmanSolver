@@ -267,5 +267,15 @@ def fieldIsSolution(field, xy):
 
 
 
-def startsolve(fields, xy):
+def startsolve(field, pos):
+    #Make positions array
+    xy = []
+    xy.append(pos)
+    
+    #Make fields array
+    field = np.transpose(field)
+    fields = []
+    fields.append(field)
+
+    #Kick off recursive function
     resolveNextField(fields, xy)
