@@ -1,140 +1,43 @@
 import numpy as np
+from datetime import datetime
+from pathfinder import findpath
 
 #TODO: Make class for graph
 
-def addIfWalkable(graph, field, x, y, nx, ny):
-    key = str(x)+","+str(y)
-    val = str(nx)+","+str(ny)
-    arr = []
-    if nx >= len(field) or ny >= len(field[x]) or nx < 0 or ny < 0:
-        return 0
-    if field[nx][ny] == 0 or field[nx][ny] == 1 or field[nx][ny] == -2:
-        if key not in graph:
-            graph[key] = []
-        arr = graph[key]
-        arr.append(val)
-        graph[key] = arr
-
-def populateGraph(graph, field, start, end):
-    for i in range(0, len(field)):
-        for j in range(0, len(field[i])):
-            if (field[i][j] == 0 or field[i][j] == 1):
-                addIfWalkable(graph, field, i, j, i, j + 1)
-                addIfWalkable(graph, field, i, j, i, j - 1)
-                addIfWalkable(graph, field, i, j, i + 1, j)
-                addIfWalkable(graph, field, i, j, i - 1, j)
 
 
-def findPathFromGraph(graph, start, end, path=[]):
-    path = path + [start]
-    if start == end:
-        return path
-    if start not in graph:
-        return None
-    for node in graph[start]:
-        if node not in path:
-            newpath = findPathFromGraph(graph, node, end, path)
-            if newpath: return newpath
-    return None
-
-def findPath(field, start, end): 
-
-    graph = {}
-    populateGraph(graph, field, start, end)
-    return findPathFromGraph(graph,start,end)
-
-def resolveNextPos(fields, xy, dir = 0, lvl = 0, dirs = [0]):
-    posses = []
-    getPossiblePositions(fields[len(fields)-1], xy[len(xy)-1], posses)
-    for nextpos in posses:
-        #TODO: Fix correct appending of fields & posses
-        xy.append(nextpos)
-        field = fields[len(fields)-1].copy()
-        fields.append(field)
-
-        for i in range(4, 0, -1):
-            resolveNextField(fields, xy, i, lvl+1, dirs)
-        
-        fields.pop()
-        xy.pop()
-
-def resolveNextField(fields, xy, dir = 0, lvl = 0, dirs = [0]):
-
-    #duplicate append last entry of field, append last dir
-    field = fields[len(fields)-1].copy()
-    pos = xy[len(xy)-1].copy()
-
-    #Resolve field
-    if dir > 0:
-        fields.append(field)
-        dirs.append(dir)
-        xy.append(pos)
-        valid = moveAndSolve(fields[len(fields)-1], xy[len(xy)-1], dir)
-        valid = valid and traverseEqualFields(fields, xy)
-    else:
-        valid = True
-
-    """
-    #Print layout etc for debugging
-    newdirs = ["L" if x == 1 else x for x in dirs]
-    newdirs = ["U" if x == 2 else x for x in newdirs]
-    newdirs = ["R" if x == 3 else x for x in newdirs]
-    newdirs = ["D" if x == 4 else x for x in newdirs]
-
-    print(lvl, newdirs, valid)
-    myfield = np.transpose(fields[len(fields)-1].copy())
-    myfield[pos[0]][pos[1]] = 5
-    for i in range (0, len(myfield)):
-        print(myfield[i])
-    """
-    #check for solution
-    if fieldIsSolution(fields[len(fields)-1], xy[len(xy)-1]):
-        newdirs = ["L" if x == 1 else x for x in dirs]
-        newdirs = ["U" if x == 2 else x for x in newdirs]
-        newdirs = ["R" if x == 3 else x for x in newdirs]
-        newdirs = ["D" if x == 4 else x for x in newdirs]
-        print(datetime.now(), "Solution: ", newdirs)
-    elif valid and lvl < 70:
-        #for i in range(4, 0, -1):
-            #resolveNextField(fields, xy, i, lvl+1, dirs)
-            #TODO: Fix ping-pong recursion
-            resolveNextPos(fields, xy, 0, lvl+1, dirs)
-    
-
-
-    fields.pop()
-    dirs.pop()
-    xy.pop()
 
 def addPosIfReachable(posses, field, x, y, nx, ny):
     if field[nx][ny] == 0 or field[nx][ny] == 1:
         start = str(x)+","+str(y)
         end = str(nx)+","+str(ny)
-        if findPath(field, start, end) is not None:
+        if findpath(field, start, end) is not None:
             nextpos = []
             nextpos.append(nx)
             nextpos.append(ny)
             posses.append(nextpos)
 
-def getPossiblePositions(field, pos, posses):
-    x = pos[0]
-    y = pos[1]
+def getPossiblePositions(field, xy):
+    x = xy[0]
+    y = xy[1]
+    posses = []
     #Loop through field
     #Check if field is ball
     #Check if adjacent fields are reachable & add to array
     for i in range(len(field)):
         for j in range(len(field[i])):
             if field[i][j] > 1 or field[i][j] == -2:
-                addPosIfReachable(posses, field, x, y, i, j)
+                #addPosIfReachable(posses, field, x, y, i, j)
                 addPosIfReachable(posses, field, x, y, i, j + 1)
                 addPosIfReachable(posses, field, x, y, i, j - 1)
                 addPosIfReachable(posses, field, x, y, i + 1, j)
                 addPosIfReachable(posses, field, x, y, i - 1, j)
+    return posses
 
-def moveAndSolve(field, xy, dir):
+def moveAndSolve(field, xys, dir):
     validMove = True
-    x = xy[0]
-    y = xy[1]
+    x = xys[0]
+    y = xys[1]
     #Get next fields coordinates
     if dir == 1:
         nx = x-1
@@ -164,6 +67,8 @@ def moveAndSolve(field, xy, dir):
     nf = field[nx][ny]
     if nf >= 0:
         nnf = field[nnx][nny]
+    elif nf == -2:
+        nnf = -20
     else:
         nnf = -10
 
@@ -172,14 +77,16 @@ def moveAndSolve(field, xy, dir):
         #Move into gate
         x = nx
         y = ny
-    if nf == -1:
+    elif nf == -1:
         #Walk into wall
         validMove = False
         reason = "Move into object"
+        return validMove
     elif nf == 0 or nf == 1:
-        #Regular walk
+        #Regular walk, no use
         x = nx
         y = ny
+        return False
     elif nf == 2 or nf == 3 or nf == 4:
         #Walk into single snowball
         if nnf == -1 or nnf == -2:
@@ -218,6 +125,7 @@ def moveAndSolve(field, xy, dir):
             nf = 0
             x = nx
             y = ny
+            validMove = False #no use
     else:
         #Move into stack
         if nnf == 0 or nnf == 1:
@@ -234,25 +142,31 @@ def moveAndSolve(field, xy, dir):
         field[nx][ny] = nf
         field[nnx][nny] = nnf
         
-    xy[0] = x
-    xy[1] = y
+    xys[0] = x
+    xys[1] = y
     
     #if not validMove:
         #print(reason)
 
     return validMove
 
-def traverseEqualFields(fields, xy):
+def traverseEqualFields(fields, xys, posses):
+    x = xys[len(xys)-1][0]
+    y = xys[len(xys)-1][1]
+    field = fields[len(fields)-1]
+    if field[x][y] == -2:
+        return True
     for i in range(len(fields)-1):
-        if (fields[i] == fields[len(fields)-1]).all() and xy[i] == xy[len(xy)-1]:
+        #if (fields[i] == fields[len(fields)-1]).all() and xys[i] == xys[len(xys)-1]:
+        if (fields[i] == fields[len(fields)-1]).all() and xys[i] in posses:
             #print("Recursive move, equal to previous step = ", i)
             return False
     
     return True
 
-def fieldIsSolution(field, xy):
-    x = xy[0]
-    y = xy[1]
+def fieldIsSolution(field, xys):
+    x = xys[0]
+    y = xys[1]
     #Iterate over array and check for completeness
     allBallsGone = True
     for i in range(len(field)):
@@ -266,16 +180,117 @@ def fieldIsSolution(field, xy):
         return False
 
 
+        
+"""
+def resolveNextPos(fields, xys, dir = 0, lvl = 0, dirs = [0]):
+    posses = []
+    getPossiblePositions(fields[len(fields)-1], xys[len(xys)-1], posses)
+    for nextpos in posses:
+        #TODO: Fix correct appending of fields & posses
+        xys.append(nextpos)
+        field = fields[len(fields)-1].copy()
+        fields.append(field)
+
+        for i in range(4, 0, -1):
+            resolveNextField(fields, xys, i, lvl+1, dirs)
+        
+        fields.pop()
+        xys.pop()
+
+def resolveNextField(fields, xys, dir = 0, lvl = 0, dirs = [0]):
+
+    #duplicate append last entry of field, append last dir
+    field = fields[len(fields)-1].copy()
+    pos = xys[len(xys)-1].copy()
+
+    #Resolve field
+    if dir > 0:
+        fields.append(field)
+        dirs.append(dir)
+        xys.append(pos)
+        valid = moveAndSolve(fields[len(fields)-1], xys[len(xys)-1], dir)
+        valid = valid and traverseEqualFields(fields, xys)
+    else:
+        valid = True
+
+    #check for solution
+    if fieldIsSolution(fields[len(fields)-1], xys[len(xys)-1]):
+        newdirs = ["L" if x == 1 else x for x in dirs]
+        newdirs = ["U" if x == 2 else x for x in newdirs]
+        newdirs = ["R" if x == 3 else x for x in newdirs]
+        newdirs = ["D" if x == 4 else x for x in newdirs]
+        print(datetime.now(), "Solution: ", newdirs)
+    elif valid and lvl < 70:
+        #for i in range(4, 0, -1):
+            #resolveNextField(fields, xys, i, lvl+1, dirs)
+            #TODO: Fix ping-pong recursion
+            resolveNextPos(fields, xys, 0, lvl+1, dirs)
+
+    fields.pop()
+    dirs.pop()
+    xys.pop()
+"""
+
+def resolveNextPositions(fields, xys, bigcounter = []):
+    bigcounter[0]+=1
+    #retrieve list of next possible positions & loop
+    posses = getPossiblePositions(fields[len(fields)-1], xys[len(xys)-1])
+    for nextpos in posses:
+        if nextpos != xys[len(xys)-1] or len(fields) == 1: #Skip same position unless first action
+            #Append field and pos
+            xys.append(nextpos)
+            field = fields[len(fields)-1].copy()
+            fields.append(field)
+            
+            #Perform move action L/U/R/D
+            for dir in range (1,5):
+                #Append current field and pos
+                pos = xys[len(xys)-1].copy()
+                xys.append(pos)
+
+                field = fields[len(fields)-1].copy()
+                fields.append(field)
+                
+                #Resolve current field according to direction
+                valid = moveAndSolve(fields[len(fields)-1], xys[len(xys)-1], dir)
+                valid = valid and traverseEqualFields(fields, xys, posses)
+                
+                #Check if move is solution or valid
+                if valid and len(fields) < 50:
+                    if fieldIsSolution(fields[len(fields)-1], xys[len(xys)-1]):
+                        """
+                        newdirs = ["L" if x == 1 else x for x in dirs]
+                        newdirs = ["U" if x == 2 else x for x in newdirs]
+                        newdirs = ["R" if x == 3 else x for x in newdirs]
+                        newdirs = ["D" if x == 4 else x for x in newdirs]
+                        """
+                        print(datetime.now(), "Solution: ", xys)
+                    else:
+                        #Iterate next field
+                        resolveNextPositions(fields,xys,bigcounter)
+
+                fields.pop()
+                xys.pop()
+
+            #Remove field and pos
+            fields.pop()
+            xys.pop()
+        
+
 
 def startsolve(field, pos):
     #Make positions array
-    xy = []
-    xy.append(pos)
+    xys = []
+    xys.append(pos)
     
     #Make fields array
-    field = np.transpose(field)
+    field = np.transpose(field.copy())
     fields = []
     fields.append(field)
 
     #Kick off recursive function
-    resolveNextField(fields, xy)
+    #resolveNextField(fields, xys)
+
+    count = []
+    count.append(0)
+    resolveNextPositions(fields,xys,count)
