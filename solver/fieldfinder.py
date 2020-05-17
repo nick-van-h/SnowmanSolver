@@ -1,4 +1,4 @@
-def getstr(x, y)
+def getAsStr(x, y)
     return str(x)+","+str(y)
 
 def getPosFromDir(pos, dir)
@@ -30,7 +30,7 @@ def addPosToPath(field, pos, path, nextfields, dir = 0):
     nx = nextpos[0]
     ny = nextpos[1]
 
-    key = getstr(nx,ny)
+    key = getAsStr(nx,ny)
     #Check if new pos is already in graph and if new pos is walkable
     if key not in graph:
         if field[nx][ny] == 0 or field[nx][ny] == 1:
@@ -39,12 +39,12 @@ def addPosToPath(field, pos, path, nextfields, dir = 0):
                 if addPosToPath(field, pos, path, nextfields, i):
                     posses.append([nx, ny])
             
-            graph[getstr(x,y)] = posses
+            graph[getAsStr(x,y)] = posses
             return True
         else:
             if field[nx][ny] > 1 or field[nx][ny] == -2:
                 if key not in nextfields:
-                    nextfields[getstr(x,y)] = []
+                    nextfields[getAsStr(x,y)] = []
                 arr = nextfields[key]
                 arr.append([[x,y],dir])
                 graph[key] = arr
@@ -58,3 +58,4 @@ def getnextfields(field, pos):
     nextfields = {}
 
     addPosToPath(field, pos, path, nextfields)
+    return nextfields
