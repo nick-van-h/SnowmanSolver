@@ -1,11 +1,13 @@
-def getAsStr(x, y)
+#Goal: Returns possible next positions to move to
+
+def getAsStr(x, y):
     return str(x)+","+str(y)
 
-def getPosFromDir(pos, dir)
+def getPosFromDir(pos, dir):
     x = pos[0]
     y = pos[1]
     if dir == 1:
-        nx = x+1
+        nx = x-1
         ny = y    
     elif dir == 2:
         nx = x
@@ -32,30 +34,29 @@ def addPosToPath(field, pos, path, nextfields, dir = 0):
 
     key = getAsStr(nx,ny)
     #Check if new pos is already in graph and if new pos is walkable
-    if key not in graph:
-        if field[nx][ny] == 0 or field[nx][ny] == 1:
-            posses = []
+
+    if field[nx][ny] == 0 or field[nx][ny] == 1:
+        if key not in path:
+            path[key] = 1
             for i in range(1,5):
-                if addPosToPath(field, pos, path, nextfields, i):
-                    posses.append([nx, ny])
-            
-            graph[getAsStr(x,y)] = posses
-            return True
-        else:
-            if field[nx][ny] > 1 or field[nx][ny] == -2:
-                if key not in nextfields:
-                    nextfields[getAsStr(x,y)] = []
-                arr = nextfields[key]
-                arr.append([[x,y],dir])
-                graph[key] = arr
-                
-            return False
+                addPosToPath(field, nextpos, path, nextfields, i)
     else:
-        return True
+        if field[nx][ny] > 1 or field[nx][ny] == -2:
+            if key not in nextfields:
+                nextfields[key] = []
+            arr = nextfields[key]
+            arr.append([[x,y],dir])
+            nextfields[key] = arr
 
 def getnextfields(field, pos):
     path = {}
     nextfields = {}
+    nextfieldsarr = []
 
     addPosToPath(field, pos, path, nextfields)
-    return nextfields
+    for key in nextfields:
+        arr = nextfields[key]
+        for i in range(0,len(arr)):
+            nextfieldsarr.append(arr[i])
+
+    return nextfieldsarr
