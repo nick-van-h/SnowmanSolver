@@ -1,8 +1,8 @@
 import numpy as np
 from datetime import datetime
-from checker import traverseEqualFields, fieldIsSolution
+from checker import fieldIsUnique, fieldIsSolution, fieldIsSolvable
 from fieldfinder import getnextfields
-
+from pathfinder import getDirectionsFromCoordinates
 
 def moveAndUpdate(field, xys, dir):
     validMove = True
@@ -122,59 +122,65 @@ def moveAndUpdate(field, xys, dir):
     return validMove
 
 
-def resolveNextPositions(fields, xys, bigcounter = []):
+def resolveNextPositions(fields, xys, allfields = [], allposses = [], bigcounter = [0]):
     bigcounter[0]+=1
     #retrieve list of next possible positions & loop
     #posses = getPossiblePositions(fields[len(fields)-1], xys[len(xys)-1])
     
     posses = getnextfields(fields[len(fields)-1], xys[len(xys)-1])
-    for nextpos in posses:
-        bp = [4, 2]
-        #Teleport to next position
-        #Append field and pos
-        xys.append(nextpos[0])
-        field = fields[len(fields)-1].copy()
-        fields.append(field)
 
-        if xys[len(xys)-1] == bp:
-            xys = xys
-        
-        #Perform move action L/U/R/D according direction
-        #Append current field and pos
-        pos = xys[len(xys)-1].copy()
-        xys.append(pos)
+    if fieldIsUnique(fields[len(fields)-1], posses, allfields, allposses):
+        allfields.append(fields[len(fields)-1])
+        allposses.append(posses)
+        for nextpos in posses:
+            #Teleport to next position
+            #Append field and pos
+            xys.append(nextpos[0])
+            field = fields[len(fields)-1].copy()
+            fields.append(field)
+            
+            #Perform move action L/U/R/D according direction
+            #Append current field and pos
+            pos = xys[len(xys)-1].copy()
+            xys.append(pos)
 
-        field = fields[len(fields)-1].copy()
-        fields.append(field)
-        
-        #Resolve current field according to direction
-        valid = moveAndUpdate(fields[len(fields)-1], xys[len(xys)-1], nextpos[1])
-        
-        if xys[len(xys)-1] == bp:
-            xys = xys
-        valid = valid and traverseEqualFields(fields, xys, posses)
-        
-        #Check if move is solution or valid
-        if valid and len(fields) < 50:
-            if fieldIsSolution(fields[len(fields)-1], xys[len(xys)-1]):
-                """
-                newdirs = ["L" if x == 1 else x for x in dirs]
-                newdirs = ["U" if x == 2 else x for x in newdirs]
-                newdirs = ["R" if x == 3 else x for x in newdirs]
-                newdirs = ["D" if x == 4 else x for x in newdirs]
-                """
-                print(datetime.now(), "Solution: ", xys)
-            else:
-                #Iterate next field
-                resolveNextPositions(fields,xys,bigcounter)
+            field = fields[len(fields)-1].copy()
+            fields.append(field)
+            
 
-        #Remove field and pos from direction move action
-        fields.pop()
-        xys.pop()
+            #Resolve current field according to direction
+            valid = moveAndUpdate(fields[len(fields)-1], xys[len(xys)-1], nextpos[1])
 
-        #Remove field and pos from teleport action
-        fields.pop()
-        xys.pop()
+            
+            if len(fields) == 13 or len(fields)==14:
+                var = 1 #breakpoint
+
+            #valid = valid and fieldIsUnique(fields, xys, posses, allfields, allposses)
+            valid = valid and fieldIsSolvable(fields[len(fields)-1])
+            
+
+            #Check if move is solution or valid
+            if valid and len(fields) < 50:
+
+                if fieldIsSolution(fields[len(fields)-1], xys[len(xys)-1]):
+                    """
+                    newdirs = ["L" if x == 1 else x for x in dirs]
+                    newdirs = ["U" if x == 2 else x for x in newdirs]
+                    newdirs = ["R" if x == 3 else x for x in newdirs]
+                    newdirs = ["D" if x == 4 else x for x in newdirs]
+                    """
+                    print(datetime.now(), "Start at: ", xys[0], "Solution: ", getDirectionsFromCoordinates(fields, xys))
+                elif fields[len(fields)-1][xys[len(xys)-1][0]][xys[len(xys)-1][1]] != -2:
+                    #Iterate next field
+                    resolveNextPositions(fields,xys, allfields, allposses, bigcounter)
+
+            #Remove field and pos from direction move action
+            fields.pop()
+            xys.pop()
+
+            #Remove field and pos from teleport action
+            fields.pop()
+            xys.pop()
         
 
 
@@ -191,7 +197,4 @@ def startsolve(field, pos):
     #Kick off recursive function
     #resolveNextField(fields, xys)
 
-    count = []
-    count.append(0)
-
-    resolveNextPositions(fields,xys,count)
+    resolveNextPositions(fields,xys)
